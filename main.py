@@ -34,7 +34,9 @@ def create_order(session, customer_id, items):
         
         total_amount = 0
         for item in items:
-            product = session.get(ProductModel, item['product_id'])
+            product = product = session.execute(
+                select(ProductModel).where(ProductModel.product_id == item['product_id']).with_for_update()
+            ).scalar_one_or_none()
             if not product:
                 raise ValueError(f"Продукт с ID {item['product_id']} не найден")
             subtotal = product.price * item['quantity']
@@ -53,7 +55,9 @@ def create_order(session, customer_id, items):
 def update_customer_email(session, customer_id, new_email):
     """ Сценарий 2: Обновление email клиента """
     try:
-        stmt = update(CustomerModel).where(CustomerModel.customer_id == customer_id).values(email=new_email)
+        stmt = update(CustomerModel).where(
+            CustomerModel.customer_id == customer_id
+        ).with_for_update().values(email=new_email)
         session.execute(stmt)
         session.commit()
         print("Email клиента успешно обновлен")
